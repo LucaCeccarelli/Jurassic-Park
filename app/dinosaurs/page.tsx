@@ -1,77 +1,119 @@
 import { getDinosaurs } from "@/lib/db/dinosaurs";
-import { Badge } from "@/components/ui/badge"; // Si tu utilises shadcn/ui
+import { DinoSearch } from "@/components/dino-search";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MapPin } from "lucide-react";
 
-export default async function DinosaurPage() {
-	const dinosaurs = await getDinosaurs();
+export default async function DinosaurPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ query?: string }>;
+}) {
+	const query = (await searchParams).query;
+	const dinosaurs = await getDinosaurs(query);
 
 	return (
-		<main className='max-w-7xl mx-auto p-8'>
-			<header className='mb-12 text-center'>
-				<h1 className='text-5xl font-bold mb-4'>Nos Spécimens</h1>
-				<p className='text-muted-foreground italic'>
-					Explorez les créatures qui peuplent nos enclos.
+		<div className='container py-10 mx-auto'>
+			<div className='flex flex-col items-center text-center mb-12 space-y-4'>
+				<Badge
+					variant='outline'
+					className='px-4 py-1 border-primary text-primary'
+				>
+					Encyclopédie Jurassique
+				</Badge>
+				<h1 className='text-4xl font-extrabold tracking-tight lg:text-5xl'>
+					Les Résidents du Parc
+				</h1>
+				<p className='text-xl text-muted-foreground max-w-175'>
+					Découvrez les fiches techniques de nos spécimens, de leur régime
+					alimentaire à leur niveau de dangerosité.
 				</p>
-			</header>
+			</div>
 
-			<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
+			<DinoSearch />
+
+			<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
 				{dinosaurs.map((dino) => (
-					<div
+					<Card
 						key={dino.id}
-						className='border rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow'
+						className='overflow-hidden group flex flex-col'
 					>
-						{/* Image Placeholder */}
-						<div className='h-48 bg-slate-200 relative'>
-							{/* Ici ton composant Image Next.js */}
-							<div className='absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm'>
-								{dino.zone.name}
+						<div className='aspect-video bg-muted relative overflow-hidden'>
+							{/* Image placeholder - Tu pourras mettre <Image /> de Next.js ici */}
+							<div className='absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4'>
+								<span className='text-white text-sm font-medium flex items-center gap-1'>
+									<MapPin className='h-4 w-4' /> {dino.zone.name}
+								</span>
 							</div>
 						</div>
 
-						<div className='p-6'>
-							<div className='flex justify-between items-start mb-2'>
-								<h2 className='text-2xl font-bold'>{dino.name}</h2>
-								<span
-									className={`px-2 py-1 rounded text-xs font-bold ${getDietColor(dino.diet)}`}
-								>
-									{dino.diet}
+						<CardHeader>
+							<div className='flex justify-between items-center mb-1'>
+								<Badge className={getDietVariant(dino.diet)}>{dino.diet}</Badge>
+								<span className='text-xs font-mono text-muted-foreground'>
+									{dino.period}
 								</span>
 							</div>
-							<p className='text-sm text-slate-500 mb-4'>
-								{dino.species} • {dino.period}
-							</p>
-							<p className='line-clamp-3 text-slate-700 mb-4'>
+							<CardTitle className='text-2xl'>{dino.name}</CardTitle>
+							<CardDescription>{dino.species}</CardDescription>
+						</CardHeader>
+
+						<CardContent className='grow'>
+							<p className='text-sm text-muted-foreground line-clamp-3 italic'>
 								{dino.description}
 							</p>
+						</CardContent>
 
-							<div className='flex items-center gap-2'>
-								<span className='text-xs uppercase font-semibold text-slate-400'>
-									Niveau de danger :
-								</span>
-								<div className='flex gap-1'>
+						<CardFooter className='border-t pt-4 flex flex-col items-start gap-3'>
+							<div className='w-full'>
+								<div className='flex justify-between text-xs mb-1 uppercase font-bold text-muted-foreground tracking-wider'>
+									<span>Niveau de Menace</span>
+									<span>{dino.dangerLevel}/5</span>
+								</div>
+								<div className='flex gap-1 w-full'>
 									{[...Array(5)].map((_, i) => (
 										<div
 											key={i}
-											className={`h-2 w-6 rounded-sm ${i < dino.dangerLevel ? "bg-red-500" : "bg-slate-200"}`}
+											className={`h-1.5 flex-1 rounded-full transition-colors ${
+												i < dino.dangerLevel
+													? dino.dangerLevel > 3
+														? "bg-destructive"
+														: "bg-orange-500"
+													: "bg-muted"
+											}`}
 										/>
 									))}
 								</div>
 							</div>
-						</div>
-					</div>
+						</CardFooter>
+					</Card>
 				))}
 			</div>
-		</main>
+
+			{dinosaurs.length === 0 && (
+				<div className='text-center py-20 text-muted-foreground border rounded-lg border-dashed'>
+					Aucun dinosaure ne correspond à votre recherche. Ils se cachent
+					peut-être dans la jungle...
+				</div>
+			)}
+		</div>
 	);
 }
 
-// Petite fonction utilitaire pour les couleurs de régime alimentaire
-function getDietColor(diet: string) {
+function getDietVariant(diet: string) {
 	switch (diet) {
 		case "CARNIVORE":
-			return "bg-red-100 text-red-700";
+			return "destructive";
 		case "HERBIVORE":
-			return "bg-green-100 text-green-700";
+			return "secondary";
 		default:
-			return "bg-blue-100 text-blue-700";
+			return "outline";
 	}
 }
